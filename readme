@@ -3,6 +3,8 @@ Document Query Application 1.0
 !!
 Before you start, on the terminal; create a directory named "data" in the same directory as code and run this command:
 wget https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF/resolve/main/mistral-7b-instruct-v0.1.Q4_K_M.gguf
+
+Install the requirements from requirements.txt
 !!
 
 Process Overview
