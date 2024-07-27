@@ -1,0 +1,11 @@
+flask
+flask-restful
+flask-restx
+pymongo
+torch
+langchain
+langchain-community
+sentence-transformers
+scikit-learn
+numpy
+python-dotenv

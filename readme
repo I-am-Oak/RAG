@@ -1,0 +1,25 @@
+Document Query Application 1.0
+
+!!
+Before you start, on the terminal; create a directory named "data" in the same directory as code and run this command:
+wget https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF/resolve/main/mistral-7b-instruct-v0.1.Q4_K_M.gguf
+!!
+
+Process Overview
+
+Stage 1:
+Knowledge management. :loads pdfs from the source directory, processes the documents: text splitting and chunking
+Stage 2:
+Vector store: receives chunks of texts and meta data as input. Converts them to vector embeddings and stores them on MongoDB Atlas
+Stage 3:
+Query Retrival: Receives the query from the user. Converts it to vector embedding, makes vector search in the db - dense retrieves documents and returns them as prompt.
+Stage 4:
+LLM Response Generation: Opensource LLM model is loaded. The retrieved document and the query is sent to the model for output generation.
+
+Research Log:
+https://docs.google.com/document/d/1sfoicH2CzTfGgS-T8UOT833ELzOPckzBmJgsJsg8ec0
+
+API Contract:
+https://docs.google.com/document/d/1Mf-9yM9TkC7_woOWf3tVChVTr0m0jYU9EfY8AMXqSo0
+
+Date:27/07/2024
