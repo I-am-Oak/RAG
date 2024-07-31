@@ -2,7 +2,7 @@ import logging
 import time
 from flask import Flask, request, jsonify
 from flask_restx import Api, Resource, fields
-from langchain.document_loaders.pdf import PyMuPDFLoader
+from langchain_community.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os
 

@@ -1,22 +1,24 @@
 import logging
 import time
+import torch
+import os
 from flask import Flask, request, jsonify
 from flask_restx import Api, Resource, fields
 from langchain.embeddings import HuggingFaceEmbeddings
 from pymongo import MongoClient, IndexModel
 from pymongo.server_api import ServerApi
-import torch
-import os
 from dotenv import load_dotenv
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
-api = Api(app, version='1.0', title='Vector Store API', description='An API for vectorizing and storing text data')
+api = Api(app, version='1.0', title='Vector Store API', description='An API for vectorizing, storing, and retrieving text data')
 
 # Configure logging
-logging.basicConfig(filename='../log/embedding.log', level=logging.INFO)
+logging.basicConfig(filename='../../log/vector_store_mongo.log', level=logging.INFO)
 
 # MongoDB Atlas connection
 MONGODB_URI = os.getenv('MONGODB_URI')
@@ -46,7 +48,7 @@ except Exception as e:
 # Define the namespace
 ns = api.namespace('vectors', description='Vector operations')
 
-# Define the input model
+# Define the input models
 chunk_model = api.model('Chunk', {
     'file_name': fields.String(required=True, description='Name of the file'),
     'text': fields.String(required=True, description='Text content')
@@ -54,6 +56,10 @@ chunk_model = api.model('Chunk', {
 
 chunks_model = api.model('Chunks', {
     'chunks': fields.List(fields.Nested(chunk_model), required=True, description='List of text chunks')
+})
+
+query_model = api.model('Query', {
+    'query': fields.String(required=True, description='Query text')
 })
 
 # Function to vectorize text
@@ -102,6 +108,24 @@ def store_vectors(chunks):
         logging.error(f"Error storing vectors in {end_time - start_time} seconds: {e}")
         raise
 
+# Function to vector search in the MongoDB Vector store to retrieve relevant documents
+def vector_search(query_vector, top_k=2):
+    start_time = time.time()
+    try:
+        documents = list(collection.find())
+        document_vectors = [np.array(doc['vector']) for doc in documents]
+        query_vector = np.array(query_vector).reshape(1, -1)
+        similarities = cosine_similarity(query_vector, document_vectors)
+        top_k_indices = similarities.argsort()[0][-top_k:][::-1]
+        top_k_documents = [documents[i] for i in top_k_indices]
+        end_time = time.time()
+        logging.info(f"Vector search completed in {end_time - start_time} seconds")
+        return top_k_documents
+    except Exception as e:
+        end_time = time.time()
+        logging.error(f"Error performing vector search in {end_time - start_time} seconds: {e}")
+        return []
+
 @ns.route('/store')
 class StoreVectors(Resource):
     @api.expect(chunks_model)
@@ -116,6 +140,40 @@ class StoreVectors(Resource):
                 return {'status': 'success', 'message': f'Stored {len(chunks)} vectors'}, 200
             else:
                 api.abort(400, "Chunks are required")
+        except Exception as e:
+            logging.error(f"Error processing request: {e}")
+            api.abort(500, "Internal Server Error")
+
+@ns.route('/retrieve')
+class RetrieveVectors(Resource):
+    @api.expect(query_model)
+    @api.doc(responses={200: 'Success', 400: 'Validation Error', 500: 'Internal Server Error'})
+    def post(self):
+        """Retrieve relevant documents for the provided query"""
+        try:
+            data = request.json
+            query = data.get('query')
+            if query:
+                query_vector = vectorize_text([query])[0]
+                documents = vector_search(query_vector)
+                if documents:
+                    result = {
+                        "status": "success",
+                        "documents": [
+                            {
+                                "content": doc['text'],
+                                "metadata": {
+                                    "file_name": doc['file_name']
+                                }
+                            }
+                            for doc in documents
+                        ]
+                    }
+                    return result, 200
+                else:
+                    return {'status': 'error', 'message': 'No documents found'}, 400
+            else:
+                api.abort(400, "Query is required")
         except Exception as e:
             logging.error(f"Error processing request: {e}")
             api.abort(500, "Internal Server Error")

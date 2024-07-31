@@ -6,12 +6,16 @@ def execute_python_file(file_path):
     try:
         print(f"Executing {file_path}...")
         # Run the Python file
-        result = subprocess.run(["python", file_path], capture_output=True, text=True)
+        result = subprocess.run(["python", file_path], capture_output=True, text=True, check=True)
         
         # Print the output of the Python file execution
         print(f"Output of {file_path}:\n{result.stdout}")
         if result.stderr:
             print(f"Errors in {file_path}:\n{result.stderr}")
+    except subprocess.CalledProcessError as e:
+        print(f"Execution failed for {file_path} with return code {e.returncode}")
+        print(f"Output: {e.output}")
+        print(f"Error: {e.stderr}")
     except Exception as e:
         print(f"Failed to execute {file_path}: {e}")
 
