@@ -6,8 +6,6 @@ torch
 chromadb
 langchain
 langchain-community
-langchain_chroma
-langchain-huggingface
 sentence-transformers
 scikit-learn
 numpy
